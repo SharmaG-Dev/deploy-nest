@@ -1,0 +1,31 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15
+    container_name: deploy_nest_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: deploy_nest
+    ports:
+      - '5434:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: deploy_nest_redis
+    ports:
+      - '6379:6379'
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: deploy_nest_chroma
+    ports:
+      - '8000:8000'
+    volumes:
+      - chroma_data:/chroma/chroma
+
+volumes:
+  postgres_data:
+  chroma_data:

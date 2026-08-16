@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    
+    <!-- Google Fonts for Premium Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&family=Pacifico&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- xterm.js dependencies -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+    <!-- Socket.io -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    
+    <style>
+        body { font-family: 'Outfit', sans-serif; }
+        .terminal-font { font-family: 'Fira Code', monospace; }
+        
+        /* Sleek scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+        
+        /* Glassmorphism utilities */
+        .glass-panel {
+            background: rgba(13, 15, 23, 0.6);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .glass-bubble-ai {
+            background: linear-gradient(145deg, rgba(30, 32, 45, 0.8) 0%, rgba(20, 22, 32, 0.9) 100%);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-left: 2px solid #38bdf8;
+        }
+        .glass-bubble-user {
+            background: linear-gradient(135deg, #4f46e5 0%, #38bdf8 100%);
+            box-shadow: 0 8px 32px 0 rgba(56, 189, 248, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Ambient Animated Background */
+        .ambient-bg {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: #05050a; overflow: hidden; z-index: -1;
+        }
+        .ambient-orb {
+            position: absolute; border-radius: 50%; filter: blur(120px); opacity: 0.4;
+            animation: float 20s infinite ease-in-out alternate;
+        }
+        .orb-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background: #38bdf8; animation-delay: 0s; }
+        .orb-2 { bottom: -20%; right: -10%; width: 60vw; height: 60vw; background: #4f46e5; animation-delay: -5s; }
+        .orb-3 { top: 40%; left: 30%; width: 40vw; height: 40vw; background: #9333ea; animation-delay: -10s; opacity: 0.2; }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(5%, 10%) scale(1.1); }
+            100% { transform: translate(-5%, -5%) scale(0.9); }
+        }
+    </style>
+    
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: { 50: '#f0f9ff', 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7' },
+              surface: { 800: '#1a1d27', 900: '#0f111a', 950: '#05050a' }
+            },
+            animation: {
+              'fade-in-up': 'fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+            },
+            keyframes: {
+              fadeInUp: {
+                '0%': { opacity: '0', transform: 'translateY(15px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              }
+            }
+          }
+        }
+      }
+    </script>
+</head>
+<body class="text-gray-100 flex flex-col h-screen overflow-hidden selection:bg-brand-500/30">
+    <!-- Animated Ambient Background -->
+    <div class="ambient-bg">
+        <div class="ambient-orb orb-1"></div>
+        <div class="ambient-orb orb-2"></div>
+        <div class="ambient-orb orb-3"></div>
+    </div>
+
+    <!-- Minimalist Navbar -->
+    <nav class="glass-panel sticky top-0 z-30 h-14 flex items-center justify-between px-6 shadow-sm border-b border-white/5">
+        <a href="/dashboard" class="flex items-center gap-3 group">
+            <span class="text-3xl text-white group-hover:opacity-80 transition-opacity pb-1 pr-1" style="font-family: 'Pacifico', cursive;">Shippl</span>
+        </a>
+        <div class="flex items-center gap-5 text-sm font-medium">
+            <span id="user-greeting" class="text-gray-400 hidden sm:block"></span>
+            <button onclick="logout()" class="text-gray-400 hover:text-white transition-colors px-3 py-1.5 rounded-md hover:bg-white/5">Logout</button>
+        </div>
+    </nav>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 flex w-full max-w-[1920px] mx-auto p-4 gap-4 h-[calc(100vh-3.5rem)]">
+        
+        <!-- Left: AI Chat -->
+        <div class="w-1/3 min-w-[400px] flex flex-col glass-panel rounded-2xl overflow-hidden shadow-2xl relative">
+            <!-- Header -->
+            <div class="px-5 py-4 border-b border-white/5 flex items-center gap-3 bg-white/[0.02]">
+                <div class="relative">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 p-[1px]">
+                        <div class="w-full h-full rounded-full bg-surface-900 flex items-center justify-center">
+                            <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        </div>
+                    </div>
+                    <span class="absolute bottom-0 right-0 w-3 h-3 bg-brand-400 border-2 border-surface-900 rounded-full"></span>
+                </div>
+                <div>
+                    <h2 class="text-[15px] font-semibold text-white tracking-wide" id="chat-title">AI Engine</h2>
+                    <p class="text-[11px] text-brand-400 font-medium uppercase tracking-wider">System Online</p>
+                </div>
+            </div>
+            
+            <!-- Chat Messages -->
+            <div id="chat-messages" class="flex-1 p-5 overflow-y-auto flex flex-col gap-5 scroll-smooth">
+                <div class="h-full flex items-center justify-center">
+                    <div class="flex items-center gap-3 text-gray-500">
+                        <svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        <span class="text-sm font-medium tracking-wide">Syncing data...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="p-4 border-t border-white/5 bg-white/[0.02]">
+                <form id="chat-form" class="relative group" onsubmit="sendChatMessage(event)">
+                    <div class="absolute -inset-0.5 bg-gradient-to-r from-brand-500 to-indigo-500 rounded-xl opacity-20 group-focus-within:opacity-50 blur transition duration-300"></div>
+                    <div class="relative flex items-center bg-surface-900 rounded-xl p-1 shadow-inner border border-white/10">
+                        
+                        <label for="chat-file" class="cursor-pointer p-2.5 text-gray-400 hover:text-white transition-colors ml-1">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                        </label>
+                        <input type="file" id="chat-file" class="hidden" onchange="updateFileName()">
+                        
+                        <input type="text" id="chat-input" class="flex-1 bg-transparent border-none text-sm text-white placeholder-gray-500 px-2 py-3 outline-none focus:ring-0" placeholder="Message AI...">
+                        
+                        <button type="submit" id="chat-send-btn" class="mr-1 p-2 bg-white text-surface-950 rounded-lg hover:bg-gray-200 transition-colors shadow-sm disabled:opacity-50">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                        </button>
+                    </div>
+                    <div id="chat-file-name" class="absolute -top-8 left-2 text-[11px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-1 rounded hidden backdrop-blur-md"></div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right: Terminal Screen -->
+        <div class="flex-1 flex flex-col glass-panel rounded-2xl overflow-hidden shadow-2xl relative border border-white/5">
+            <!-- macOS Style Terminal Header -->
+            <div class="h-12 bg-white/[0.03] border-b border-white/5 flex items-center px-4 justify-between select-none">
+                <div class="flex items-center gap-6">
+                    <div class="flex gap-2">
+                        <div class="w-3 h-3 rounded-full bg-[#ff5f56] border border-[#e0443e]"></div>
+                        <div class="w-3 h-3 rounded-full bg-[#ffbd2e] border border-[#dea123]"></div>
+                        <div class="w-3 h-3 rounded-full bg-[#27c93f] border border-[#1aab29]"></div>
+                    </div>
+                    <span class="text-[12px] font-medium text-gray-400 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        bash — root@shippl
+                    </span>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                    <button id="connect-terminal-btn" class="text-[11px] font-semibold bg-brand-500/20 text-brand-400 hover:bg-brand-500/30 px-3 py-1 rounded transition-colors hidden">CONNECT SSH</button>
+                    <div id="terminal-status-badge" class="flex items-center gap-1.5 text-[11px] font-semibold text-gray-500">
+                        <div class="w-2 h-2 rounded-full bg-gray-500"></div> INIT
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex-1 bg-[#090b10]/80 p-2 relative">
+                <div id="terminal-container" class="w-full h-full relative overflow-hidden px-2 pt-1 terminal-font text-[14px]"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Init logic
+        const token = localStorage.getItem('accessToken');
+        if (!token) window.location.href = '/auth';
+
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+            const user = JSON.parse(userStr);
+            document.getElementById('user-greeting').textContent = user.name || user.email;
+        }
+
+        async function fetchAPI(url, options = {}) {
+            const res = await fetch(url, { ...options, headers: { 'Authorization': `Bearer ${token}`, ...options.headers } });
+            if (res.status === 401) { localStorage.clear(); window.location.href = '/'; throw new Error('Unauthorized'); }
+            return res;
+        }
+
+        async function logout() {
+            try { await fetchAPI('/auth/logout', { method: 'POST' }); } catch (e) {}
+            localStorage.clear(); window.location.href = '/';
+        }
+
+        function escapeHtml(unsafe) { return (unsafe||'').toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
+
+        const deploymentId = window.location.pathname.split('/')[2];
+        const messagesContainer = document.getElementById('chat-messages');
+
+        async function loadChatMessages() {
+            try {
+                const res = await fetchAPI(`/deployments/${deploymentId}/chat`);
+                if (!res.ok) throw new Error();
+                renderMessages(await res.json());
+            } catch(e) {
+                messagesContainer.innerHTML = '<div class="text-center text-red-400 text-sm mt-10">Error loading chat context.</div>';
+            }
+        }
+
+        function formatMessageContent(content) {
+            // Very basic formatter for terminal output in chat
+            let html = escapeHtml(content);
+            html = html.replace(/function=(\w+)>/g, '<span class="text-indigo-400 font-medium">[$1]</span> ');
+            return html;
+        }
+
+        function renderMessages(messages) {
+            if(messages.length === 0) {
+                messagesContainer.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full opacity-60">
+                        <svg class="w-12 h-12 text-gray-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                        <p class="text-sm text-gray-400 text-center max-w-[250px]">Start a conversation. Ask the AI to run commands or deploy.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            messagesContainer.innerHTML = messages.map(m => {
+                const isUser = m.sender === 'USER';
+                const isSystem = m.sender === 'SYSTEM';
+                
+                let alignWrapper = isUser ? 'justify-end' : 'justify-start';
+                let bubbleClass = isUser ? 'glass-bubble-user text-white rounded-2xl rounded-tr-sm' : (isSystem ? 'bg-red-950/50 border border-red-500/30 text-red-200 rounded-2xl rounded-tl-sm' : 'glass-bubble-ai text-gray-200 rounded-2xl rounded-tl-sm');
+                
+                return `
+                    <div class="flex w-full ${alignWrapper} animate-fade-in-up">
+                        <div class="max-w-[85%] flex flex-col ${isUser ? 'items-end' : 'items-start'}">
+                            <span class="text-[10px] font-semibold text-gray-500 mb-1.5 uppercase tracking-wider pl-1">${isSystem ? 'System' : (isUser ? 'You' : 'AI Engine')}</span>
+                            <div class="px-4 py-3 ${bubbleClass} text-[14px] leading-relaxed relative text-shadow-sm font-light">
+                                <div class="whitespace-pre-wrap word-break">${formatMessageContent(m.content)}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function updateFileName() {
+            const fileInput = document.getElementById('chat-file');
+            const fileNameDiv = document.getElementById('chat-file-name');
+            if (fileInput.files.length > 0) {
+                fileNameDiv.textContent = fileInput.files[0].name;
+                fileNameDiv.classList.remove('hidden');
+            } else { fileNameDiv.classList.add('hidden'); }
+        }
+
+        async function sendChatMessage(e) {
+            e.preventDefault();
+            const input = document.getElementById('chat-input');
+            const fileInput = document.getElementById('chat-file');
+            const btn = document.getElementById('chat-send-btn');
+            
+            const content = input.value.trim();
+            const hasFile = fileInput.files.length > 0;
+            if (!content && !hasFile) return;
+
+            input.value = '';
+            btn.disabled = true;
+
+            const formData = new FormData();
+            if (content) formData.append('content', content);
+            if (hasFile) formData.append('file', fileInput.files[0]);
+
+            try {
+                await fetch(`/deployments/${deploymentId}/chat`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: formData });
+                fileInput.value = ''; updateFileName();
+                await loadChatMessages();
+            } catch(error) {
+                alert('Error sending message');
+            } finally { btn.disabled = false; }
+        }
+
+        if (deploymentId) loadChatMessages();
+
+        // --- Terminal ---
+        let socket, term, fitAddon, isTerminalInteractive = false;
+
+        function initTerminal() {
+            term = new Terminal({
+                theme: {
+                    background: 'transparent',
+                    foreground: '#e2e8f0',
+                    cursor: '#38bdf8',
+                    selectionBackground: 'rgba(56, 189, 248, 0.3)',
+                    black: '#000000', red: '#f87171', green: '#4ade80', yellow: '#facc15',
+                    blue: '#60a5fa', magenta: '#c084fc', cyan: '#22d3ee', white: '#f8fafc',
+                },
+                fontFamily: '"Fira Code", monospace',
+                fontSize: 14,
+                lineHeight: 1.2,
+                cursorBlink: true
+            });
+            
+            fitAddon = new FitAddon.FitAddon();
+            term.loadAddon(fitAddon);
+            term.open(document.getElementById('terminal-container'));
+            fitAddon.fit();
+            
+            window.addEventListener('resize', () => {
+                if (fitAddon && term) { fitAddon.fit(); if (isTerminalInteractive && socket) socket.emit('terminalResize', { cols: term.cols, rows: term.rows }); }
+            });
+
+            socket = io(window.location.origin);
+            const badge = document.getElementById('terminal-status-badge');
+            const btn = document.getElementById('connect-terminal-btn');
+
+            socket.on('connect', () => {
+                badge.innerHTML = '<div class="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_#3b82f6]"></div> STREAMING';
+                badge.className = "flex items-center gap-1.5 text-[11px] font-semibold text-blue-400";
+                socket.emit('joinDeployment', deploymentId);
+                btn.classList.remove('hidden');
+            });
+
+            socket.on('disconnect', () => {
+                badge.innerHTML = '<div class="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_#ef4444]"></div> DISCONNECTED';
+                badge.className = "flex items-center gap-1.5 text-[11px] font-semibold text-red-400";
+                isTerminalInteractive = false;
+            });
+
+            socket.on('deploymentLogs', (log) => {
+                term.writeln(`\x1b[38;5;244m${log.replace(/\n/g, '\r\n')}\x1b[0m`);
+                if (log.includes('Deployment is READY')) socket.emit('startTerminal', { deploymentId, cols: term.cols, rows: term.rows });
+            });
+
+            socket.on('terminalOutput', (data) => {
+                if (!isTerminalInteractive) {
+                    isTerminalInteractive = true;
+                    badge.innerHTML = '<div class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]"></div> SSH ACTIVE';
+                    badge.className = "flex items-center gap-1.5 text-[11px] font-semibold text-green-400";
+                    btn.classList.add('hidden');
+                }
+                term.write(data);
+            });
+
+            term.onData(input => { if (isTerminalInteractive) socket.emit('terminalInput', input); });
+            btn.addEventListener('click', () => socket.emit('startTerminal', { deploymentId, cols: term.cols, rows: term.rows }));
+        }
+
+        if (deploymentId) setTimeout(() => initTerminal(), 500);
+    </script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+allowBuilds:
+  '@prisma/engines': false
+  cpu-features: true
+  msgpackr-extract: false
+  onnxruntime-node: true
+  prisma: false
+  protobufjs: true
+  sharp: true
+  ssh2: true
+  unrs-resolver: false

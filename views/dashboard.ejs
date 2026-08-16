@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Pacifico&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+                sans: ['Outfit', 'sans-serif'],
+            },
+            colors: {
+              brand: { 50: '#f0f9ff', 100: '#e0f2fe', 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 900: '#0c4a6e' },
+              surface: { 800: '#1a1d27', 900: '#0f111a', 950: '#05050a' }
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+        .glass-panel {
+            background: rgba(15, 17, 26, 0.6);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .glass-input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        .glass-input:focus {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #0ea5e9;
+            outline: none;
+        }
+    </style>
+</head>
+<body class="bg-surface-950 min-h-screen font-sans text-gray-100 relative">
+    
+    <!-- Ambient Background -->
+    <div class="fixed inset-0 z-0 pointer-events-none">
+        <div class="absolute inset-0 bg-[url('https://play.tailwindcss.com/img/grid.svg')] bg-center opacity-5 [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]"></div>
+        <div class="absolute top-0 right-1/4 w-[500px] h-[500px] bg-brand-500/10 rounded-full blur-[120px] mix-blend-screen"></div>
+        <div class="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-[120px] mix-blend-screen"></div>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="glass-panel border-b border-white/5 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center gap-2">
+                    <a href="/" class="text-3xl text-white hover:opacity-80 transition-opacity pb-1 pr-1" style="font-family: 'Pacifico', cursive;">Shippl</a>
+                </div>
+                <div class="flex items-center gap-5">
+                    <span id="user-greeting" class="text-sm font-medium text-gray-400"></span>
+                    <button onclick="logout()" class="text-sm font-medium text-gray-400 hover:text-white transition-colors">Logout</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div class="flex items-center justify-between mb-10">
+            <div>
+                <h1 class="text-3xl font-bold text-white tracking-tight">Projects</h1>
+                <p class="text-sm text-gray-400 mt-1">Manage and deploy your applications</p>
+            </div>
+            <button onclick="openDrawer()" class="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-brand-500 to-indigo-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg hover:shadow-brand-500/25 focus:outline-none transition-all transform hover:-translate-y-0.5">
+                <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" /></svg>
+                New Project
+            </button>
+        </div>
+
+        <div id="projects-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Loading state -->
+            <div class="col-span-full flex justify-center py-12">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Slide-over Drawer for Create/Edit -->
+    <div id="drawer" class="fixed inset-0 overflow-hidden z-50 hidden" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
+        <div class="absolute inset-0 overflow-hidden">
+            <div id="drawer-backdrop" class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity opacity-0" onclick="closeDrawer()"></div>
+            <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
+                <div id="drawer-panel" class="pointer-events-auto w-screen max-w-md transform transition ease-in-out duration-300 translate-x-full">
+                    <div class="flex h-full flex-col overflow-y-scroll bg-surface-900 border-l border-white/5 shadow-2xl">
+                        <div class="bg-surface-800 px-6 py-6 border-b border-white/5">
+                            <div class="flex items-center justify-between">
+                                <h2 class="text-xl font-bold text-white" id="drawer-title">New Project</h2>
+                                <div class="ml-3 flex h-7 items-center">
+                                    <button type="button" class="rounded-lg text-gray-400 hover:text-white focus:outline-none transition-colors" onclick="closeDrawer()">
+                                        <span class="sr-only">Close panel</span>
+                                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="relative flex-1 px-6 py-8">
+                            <form id="project-form" class="space-y-6">
+                                <input type="hidden" id="project-id">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-1.5">Project Name</label>
+                                    <input type="text" id="project-name" required class="glass-input block w-full rounded-xl px-4 py-3 sm:text-sm transition-colors">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-1.5">Repository URL</label>
+                                    <input type="url" id="project-repo" class="glass-input block w-full rounded-xl px-4 py-3 sm:text-sm transition-colors" placeholder="https://github.com/user/repo (Optional)">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-1.5">Branch</label>
+                                    <input type="text" id="project-branch" value="main" class="glass-input block w-full rounded-xl px-4 py-3 sm:text-sm transition-colors">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-1.5">Upload Project (.zip)</label>
+                                    <input type="file" id="project-file" accept=".zip" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-white/10 file:text-white hover:file:bg-white/20 transition-all cursor-pointer">
+                                </div>
+                                
+                                <div id="form-error" class="hidden text-sm text-red-400 bg-red-500/10 border border-red-500/20 p-4 rounded-xl"></div>
+                            </form>
+                        </div>
+                        <div class="flex flex-shrink-0 justify-end px-6 py-5 border-t border-white/5 bg-surface-950">
+                            <button type="button" class="rounded-xl border border-white/10 bg-transparent py-2.5 px-5 text-sm font-medium text-gray-300 hover:bg-white/5 hover:text-white focus:outline-none transition-all" onclick="closeDrawer()">Cancel</button>
+                            <button type="button" onclick="saveProject()" class="ml-4 inline-flex justify-center rounded-xl border border-transparent bg-brand-600 py-2.5 px-6 text-sm font-bold text-white shadow-lg hover:bg-brand-500 focus:outline-none transition-all">Save Project</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check Auth
+        const token = localStorage.getItem('accessToken');
+        if (!token) {
+            window.location.href = '/auth';
+        }
+
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+            const user = JSON.parse(userStr);
+            document.getElementById('user-greeting').textContent = `Hi, ${user.name || user.email}`;
+        }
+
+
+        async function fetchAPI(url, options = {}) {
+            const headers = {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+            const res = await fetch(url, { ...options, headers });
+            if (res.status === 401) {
+                localStorage.clear();
+                window.location.href = '/';
+                throw new Error('Unauthorized');
+            }
+            return res;
+        }
+
+        async function logout() {
+            try {
+                await fetchAPI('/auth/logout', { method: 'POST' });
+            } catch (e) {}
+            localStorage.clear();
+            window.location.href = '/';
+        }
+
+        // Load Projects
+        async function loadProjects() {
+            try {
+                const res = await fetchAPI('/projects');
+                const projects = await res.json();
+                renderProjects(projects);
+            } catch (error) {
+                document.getElementById('projects-container').innerHTML = `
+                    <div class="col-span-full p-4 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl">Failed to load projects.</div>
+                `;
+            }
+        }
+
+        function renderProjects(projects) {
+            const container = document.getElementById('projects-container');
+            if (projects.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-20 glass-card rounded-2xl border border-dashed border-white/20">
+                        <svg class="mx-auto h-12 w-12 text-gray-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                        <h3 class="text-lg font-medium text-white mb-1">No projects yet</h3>
+                        <p class="text-sm text-gray-400 mb-6">Get started by creating your first deployment.</p>
+                        <button onclick="openDrawer()" class="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-brand-500 to-indigo-600 px-5 py-2.5 text-sm font-bold text-white shadow-lg hover:shadow-brand-500/25 transition-all transform hover:-translate-y-0.5">
+                            <svg class="-ml-1 mr-2 h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
+                            New Project
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = projects.map(p => `
+                <div class="glass-card rounded-2xl shadow-lg hover:shadow-brand-500/10 hover:border-white/20 transition-all duration-300 overflow-hidden flex flex-col group">
+                    <div class="p-6 flex-1">
+                        <div class="flex justify-between items-start mb-4">
+                            <h3 class="text-lg font-bold text-white truncate pr-2 group-hover:text-brand-400 transition-colors">${escapeHtml(p.name)}</h3>
+                            <span class="inline-flex items-center rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-[10px] uppercase font-bold text-emerald-400 tracking-wider">Active</span>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <p class="text-sm text-gray-400 truncate flex items-center gap-2" title="${escapeHtml(p.repositoryUrl)}">
+                                <svg class="w-4 h-4 text-gray-500 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                                ${escapeHtml(p.repositoryUrl) || '<span class="text-gray-600 italic">No repository linked</span>'}
+                            </p>
+                            <div class="flex items-center text-sm text-gray-400 gap-2">
+                                <svg class="h-4 w-4 text-gray-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                Branch: <span class="font-medium text-gray-200">${escapeHtml(p.branch)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white/[0.02] px-6 py-4 flex justify-between items-center border-t border-white/5">
+                        <div class="flex gap-2">
+                            <button onclick="deployProject('${p.id}')" class="inline-flex items-center rounded-lg bg-white/10 px-3 py-1.5 text-xs font-bold text-white hover:bg-white/20 transition-colors border border-white/5">Deploy</button>
+                            <button onclick="editProject('${p.id}')" class="inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-colors">Edit</button>
+                        </div>
+                        <button onclick="deleteProject('${p.id}')" class="text-xs font-medium text-red-400 hover:text-red-300 transition-colors p-1.5 rounded-lg hover:bg-red-500/10">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Drawer logic
+        const drawer = document.getElementById('drawer');
+        const drawerPanel = document.getElementById('drawer-panel');
+        const drawerBackdrop = document.getElementById('drawer-backdrop');
+
+        function openDrawer(projectId = null) {
+            document.getElementById('form-error').classList.add('hidden');
+            drawer.classList.remove('hidden');
+            setTimeout(() => {
+                drawerBackdrop.classList.remove('opacity-0');
+                drawerBackdrop.classList.add('opacity-100');
+                drawerPanel.classList.remove('translate-x-full');
+                drawerPanel.classList.add('translate-x-0');
+            }, 10);
+            
+            if (!projectId) {
+                document.getElementById('drawer-title').textContent = 'New Project';
+                document.getElementById('project-form').reset();
+                document.getElementById('project-id').value = '';
+            }
+        }
+
+        function closeDrawer() {
+            drawerBackdrop.classList.remove('opacity-100');
+            drawerBackdrop.classList.add('opacity-0');
+            drawerPanel.classList.remove('translate-x-0');
+            drawerPanel.classList.add('translate-x-full');
+            setTimeout(() => {
+                drawer.classList.add('hidden');
+            }, 300);
+        }
+
+        async function editProject(id) {
+            try {
+                const res = await fetchAPI(`/projects/${id}`);
+                const project = await res.json();
+                
+                document.getElementById('drawer-title').textContent = 'Edit Project';
+                document.getElementById('project-id').value = project.id;
+                document.getElementById('project-name').value = project.name;
+                document.getElementById('project-repo').value = project.repositoryUrl;
+                document.getElementById('project-branch').value = project.branch;
+                
+                openDrawer(id);
+            } catch(e) {
+                alert('Could not load project details');
+            }
+        }
+
+        async function saveProject() {
+            const id = document.getElementById('project-id').value;
+            const name = document.getElementById('project-name').value;
+            const repo = document.getElementById('project-repo').value;
+            const branch = document.getElementById('project-branch').value;
+            const fileInput = document.getElementById('project-file');
+
+            const method = id ? 'PATCH' : 'POST';
+            const url = id ? `/projects/${id}` : `/projects`;
+
+            let body;
+            let headers = {
+                'Authorization': `Bearer ${token}`
+            };
+
+            if (method === 'POST') {
+                body = new FormData();
+                body.append('name', name);
+                if (repo) body.append('repositoryUrl', repo);
+                if (branch) body.append('branch', branch);
+                if (fileInput.files.length > 0) {
+                    body.append('file', fileInput.files[0]);
+                }
+            } else {
+                body = JSON.stringify({ name, repositoryUrl: repo, branch });
+                headers['Content-Type'] = 'application/json';
+            }
+
+            try {
+                const res = await fetch(url, {
+                    method,
+                    headers,
+                    body
+                });
+
+                if (res.status === 401) {
+                    logout();
+                }
+
+                if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.message || 'Validation failed');
+                }
+
+                closeDrawer();
+                loadProjects();
+            } catch (error) {
+                const errorEl = document.getElementById('form-error');
+                let errMsg = error.message;
+                if(Array.isArray(errMsg)) errMsg = errMsg.join(', ');
+                errorEl.textContent = errMsg;
+                errorEl.classList.remove('hidden');
+            }
+        }
+
+        async function deleteProject(id) {
+            if(confirm('Are you sure you want to delete this project? All associated deployments will also be deleted.')) {
+                try {
+                    await fetchAPI(`/projects/${id}`, { method: 'DELETE' });
+                    loadProjects();
+                } catch(e) {
+                    alert('Failed to delete project');
+                }
+            }
+        }
+
+        function escapeHtml(unsafe) {
+            return (unsafe||'').toString()
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // --- Chat & Deployment Logic ---
+        async function deployProject(projectId) {
+            // Create a deployment
+            try {
+                const res = await fetchAPI(`/deployments`, {
+                    method: 'POST',
+                    body: JSON.stringify({ projectId, commitHash: 'latest' })
+                });
+                if(!res.ok) throw new Error('Failed to create deployment');
+                const deployment = await res.json();
+                
+                openChat(deployment.id);
+            } catch(e) {
+                alert('Error initiating deployment.');
+            }
+        }
+
+        function openChat(deploymentId) {
+            window.location.href = `/deployments/${deploymentId}/view`;
+        }
+
+        // Init
+        loadProjects();
+    </script>
+</body>
+</html>

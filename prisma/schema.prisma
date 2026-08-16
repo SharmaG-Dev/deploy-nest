@@ -1,0 +1,119 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // url      = env("DATABASE_URL")
+}
+
+enum DeploymentStatus {
+  PENDING
+  CREATING
+  DOWNLOADING
+  EXTRACTING
+  STARTING
+  READY
+  STOPPING
+  STOPPED
+  FAILED
+}
+
+enum IngestionStatus {
+  PENDING
+  EXTRACTING
+  INDEXING
+  READY
+  FAILED
+}
+
+model User {
+  id                    String       @id @default(uuid())
+  email                 String       @unique
+  password              String
+  name                  String?
+  encryptedRefreshToken String?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+  projects              Project[]
+  deployments           Deployment[]
+
+  @@map("users")
+}
+
+model Project {
+  id            String       @id @default(uuid())
+  name          String
+  repositoryUrl String
+  branch        String       @default("main")
+  projectUrl    String?
+  liveUrl       String?
+  isDeployed    Boolean      @default(false)
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deployments   Deployment[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@map("projects")
+}
+
+model Deployment {
+  id              String           @id @default(uuid())
+  projectId       String
+  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status          DeploymentStatus @default(PENDING)
+  logs            String?
+  commitHash      String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  messages        Message[]
+  ingestionStatus IngestionStatus  @default(PENDING)
+  projectManifest String?          @db.Text
+  containerId     String?
+  containerName   String?
+  errorMessage    String?
+  startedAt       DateTime?
+  stoppedAt       DateTime?
+
+  @@index([projectId])
+  @@index([containerId])
+  @@map("deployments")
+}
+
+enum MessageSender {
+  USER
+  AI
+  SYSTEM
+}
+
+model Message {
+  id           String        @id @default(uuid())
+  deploymentId String
+  deployment   Deployment    @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+  sender       MessageSender
+  content      String
+  createdAt    DateTime      @default(now())
+  attachments  Attachment[]
+
+  @@map("messages")
+}
+
+model Attachment {
+  id        String   @id @default(uuid())
+  messageId String
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  fileUrl   String
+  fileName  String
+  fileType  String
+  createdAt DateTime @default(now())
+
+  @@map("attachments")
+}

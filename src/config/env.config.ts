@@ -1,0 +1,16 @@
+export const ENV = {
+  PORT: process.env.PORT ?? 4000,
+  S3_BUCKET: process.env.S3_BUCKET || 'lets-deploy',
+  S3_REGION: process.env.S3_REGION || 'us-east-1',
+  S3_ENDPOINT: process.env.S3_ENDPOINT || 'http://localhost:9000',
+  S3_FORCE_PATH_STYLE: process.env.S3_FORCE_PATH_STYLE === 'true',
+  S3_ACCESS_KEY_ID: process.env.S3_ACCESS_KEY_ID || 'minioadmin',
+  S3_SECRET_ACCESS_KEY: process.env.S3_SECRET_ACCESS_KEY || 'minioadmin123',
+  ENCRYPTION_SECRET: process.env.ENCRYPTION_SECRET || 'default_secret_key_32_bytes_len_12345',
+  JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET || 'access_secret_key_12345',
+  JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || 'refresh_secret_key_67890',
+  OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY || 'dummy',
+  REDIS_HOST: process.env.REDIS_HOST || 'localhost',
+  REDIS_PORT: parseInt(process.env.REDIS_PORT || '6379', 10),
+  CHROMA_PATH: process.env.CHROMA_PATH || 'http://localhost:8000',
+};

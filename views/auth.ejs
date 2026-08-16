@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                50: '#f0f9ff',
+                100: '#e0f2fe',
+                500: '#0ea5e9',
+                600: '#0284c7',
+                900: '#0c4a6e',
+              }
+            }
+          }
+        }
+      }
+    </script>
+</head>
+<body class="bg-gray-900 min-h-screen font-sans antialiased text-white flex items-center justify-center p-4">
+    
+    <div class="absolute inset-0 z-0">
+        <div class="absolute inset-0 bg-[url('https://play.tailwindcss.com/img/grid.svg')] bg-center opacity-10"></div>
+        <div class="absolute top-1/2 left-1/2 w-[600px] h-[600px] bg-brand-500/20 rounded-full blur-[100px] transform -translate-x-1/2 -translate-y-1/2"></div>
+    </div>
+
+    <div class="relative z-10 w-full max-w-md bg-white/10 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl p-8 transition-all duration-300">
+        
+        <div class="text-center mb-8 cursor-pointer" onclick="window.location.href='/'">
+            <h1 class="text-5xl text-white mb-6" style="font-family: 'Pacifico', cursive;">Shippl</h1>
+            <h2 id="form-title" class="text-2xl font-bold tracking-tight">Welcome back</h2>
+            <p id="form-subtitle" class="text-gray-400 text-sm mt-2">Sign in to your account to continue</p>
+        </div>
+
+        <div id="error-message" class="hidden mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/50 text-red-200 text-sm text-center"></div>
+
+        <form id="auth-form" class="space-y-5">
+            <div id="name-field" class="hidden">
+                <label class="block text-sm font-medium text-gray-300 mb-1">Full Name</label>
+                <input type="text" id="name" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all" placeholder="John Doe">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-1">Email Address</label>
+                <input type="email" id="email" required class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all" placeholder="you@example.com">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-1">Password</label>
+                <input type="password" id="password" required class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all" placeholder="••••••••">
+            </div>
+
+            <button type="submit" id="submit-btn" class="w-full py-3 px-4 bg-gradient-to-r from-brand-500 to-purple-600 hover:from-brand-600 hover:to-purple-700 text-white font-bold rounded-xl shadow-lg hover:shadow-brand-500/25 transition-all duration-300 transform hover:-translate-y-0.5 mt-2">
+                Sign In
+            </button>
+        </form>
+
+        <div class="mt-6 text-center text-sm text-gray-400">
+            <span id="toggle-text">Don't have an account?</span> 
+            <button onclick="toggleMode()" id="toggle-btn" class="text-brand-400 hover:text-brand-300 font-semibold transition-colors">Sign up</button>
+        </div>
+    </div>
+
+    <script>
+        // Check if already logged in
+        if (localStorage.getItem('accessToken')) {
+            window.location.href = '/dashboard';
+        }
+
+        let isLoginMode = true;
+        const formTitle = document.getElementById('form-title');
+        const formSubtitle = document.getElementById('form-subtitle');
+        const nameField = document.getElementById('name-field');
+        const submitBtn = document.getElementById('submit-btn');
+        const toggleText = document.getElementById('toggle-text');
+        const toggleBtn = document.getElementById('toggle-btn');
+        const authForm = document.getElementById('auth-form');
+        const errorMsg = document.getElementById('error-message');
+
+        function toggleMode() {
+            isLoginMode = !isLoginMode;
+            errorMsg.classList.add('hidden');
+            authForm.reset();
+
+            if (isLoginMode) {
+                formTitle.textContent = 'Welcome back';
+                formSubtitle.textContent = 'Sign in to your account to continue';
+                nameField.classList.add('hidden');
+                submitBtn.textContent = 'Sign In';
+                toggleText.textContent = "Don't have an account?";
+                toggleBtn.textContent = 'Sign up';
+            } else {
+                formTitle.textContent = 'Create an account';
+                formSubtitle.textContent = 'Start deploying your applications today';
+                nameField.classList.remove('hidden');
+                submitBtn.textContent = 'Sign Up';
+                toggleText.textContent = "Already have an account?";
+                toggleBtn.textContent = 'Sign in';
+            }
+        }
+
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const name = document.getElementById('name').value;
+
+            const payload = isLoginMode ? { email, password } : { email, password, name };
+            const endpoint = isLoginMode ? '/auth/login' : '/auth/signup';
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing...';
+            submitBtn.classList.add('opacity-70', 'cursor-not-allowed');
+            errorMsg.classList.add('hidden');
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                let data;
+                try {
+                    data = await response.json();
+                } catch(err) {
+                    throw new Error('Server returned an unexpected response. Ensure the backend is running properly.');
+                }
+
+                if (!response.ok) {
+                    let errMsg = isLoginMode ? 'Invalid credentials' : 'Registration failed';
+                    if (data.message) {
+                        errMsg = Array.isArray(data.message) ? data.message.join(', ') : data.message;
+                    }
+                    throw new Error(errMsg);
+                }
+
+                // Store tokens
+                localStorage.setItem('accessToken', data.accessToken);
+                localStorage.setItem('refreshToken', data.refreshToken);
+                localStorage.setItem('user', JSON.stringify(data.user));
+
+                // Redirect to dashboard
+                window.location.href = '/dashboard';
+
+            } catch (error) {
+                errorMsg.textContent = error.message || 'Something went wrong';
+                errorMsg.classList.remove('hidden');
+                submitBtn.disabled = false;
+                submitBtn.textContent = isLoginMode ? 'Sign In' : 'Sign Up';
+                submitBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+            }
+        });
+    </script>
+</body>
+</html>
